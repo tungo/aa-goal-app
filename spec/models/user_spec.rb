@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe User, type: :model do
-  subject(:user) { FactoryGirl.build(:user) }
+  subject(:user) { FactoryGirl.create(:user) }
 
   describe "validations" do
     describe "has username, password_digest, and session token" do
@@ -27,10 +27,10 @@ RSpec.describe User, type: :model do
   describe "instance methods" do
     describe "#is_password?" do
       it "can confirm the password" do
-        expect(user.is_password("password")).to be_true
+        expect(user.is_password?("password")).to be_truthy
       end
       it "can reject the incorrect password" do
-        expect(user.is_password("not_password")).to be_false
+        expect(user.is_password?("not_password")).to be_falsey
       end
     end
 
@@ -56,13 +56,12 @@ RSpec.describe User, type: :model do
 
       it "replaces old password" do
         user.password = 'new_password'
-        expect(user.password).to be('new_password')
+        expect(user.password).to eq('new_password')
 
-        expect(BCrypt::Password.new(user.password_digest).is_password?('new_password')).to be_true
+        expect(BCrypt::Password.new(user.password_digest).is_password?('new_password')).to be_truthy
       end
 
       it "password not store in database" do
-        user.save
         m_user = User.find_by(username: user.username)
 
         expect(m_user.password).to be_nil
@@ -73,7 +72,17 @@ RSpec.describe User, type: :model do
 
   describe "class methods" do
     describe "::find_by_credentials" do
+      it "gets user by username and password" do
+        expect(User.find_by_credentials(user.username, user.password)).to eq(user)
+      end
 
+      it "returns nil if no user" do
+        expect(User.find_by_credentials('not_user', 'not_pass')).to be_nil
+      end
+
+      it "returns nil if wrong password" do
+        expect(User.find_by_credentials(user.username, "wrong_pass")).not_to eq(user)
+      end
     end
   end
 end
